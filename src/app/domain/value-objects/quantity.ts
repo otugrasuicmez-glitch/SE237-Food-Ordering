@@ -47,4 +47,15 @@ export class Quantity {
         this.ensureSameUnit(other);
         return this.amount >= other.amount;
     }
+
+    multiply(factor: number): Quantity {
+    if (!Number.isFinite(factor) || factor < 0) {
+        throw new Error("Invalid multiplication factor");
+    }
+
+    return new Quantity(
+        Math.round(this.amount * factor),
+        this.unit
+    );
+    }
 }

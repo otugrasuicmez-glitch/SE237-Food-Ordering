@@ -89,4 +89,31 @@ describe('Recipe', () => {
         expect(first.getQuantity().getAmount()).toBe(200);
         expect(second.getQuantity().getAmount()).toBe(50);
     });
+
+    it('should scale recipe ingredients', () => {
+    const recipe = new Recipe([
+        new RecipeLine("MILK", new Quantity(200, Unit.Milliliter))
+    ]);
+
+    const result = recipe.ingredientsNeeded(1.25);
+
+    expect(result.get("MILK")?.getAmount()).toBe(250);
+});
+
+it('should combine ingredients before rounding', () => {
+    const recipe = new Recipe([
+        new RecipeLine("FLOUR", new Quantity(2, Unit.Gram)),
+        new RecipeLine("FLOUR", new Quantity(2, Unit.Gram))
+    ]);
+
+    const result = recipe.ingredientsNeeded(0.75);
+
+    expect(result.get("FLOUR")?.getAmount()).toBe(3);
+});
+
+it('should reject negative scaling factors', () => {
+    const recipe = new Recipe([]);
+
+    expect(() => recipe.ingredientsNeeded(-1)).toThrow();
+});
 });

@@ -29,4 +29,12 @@ export class Money {
     toTL(): number {
         return this.amount / 100;
     }
+
+    multiply(factor: number): Money {
+    if (!Number.isFinite(factor) || factor < 0) {
+        throw new Error("Invalid multiplication factor");
+    }
+
+    return new Money(Math.round(this.amount * factor));
+    }
 }

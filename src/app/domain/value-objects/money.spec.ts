@@ -1,6 +1,7 @@
 
 
 import { describe, it, expect } from 'vitest';
+
 import { Money } from "./money";
 
 describe("Money", () => {
@@ -54,4 +55,30 @@ describe("Money", () => {
         expect(first.getAmount()).toBe(10000);
         expect(result.getAmount()).toBe(15000);
     });
+
+    it('should multiply money by a factor', () => {
+    const money = new Money(10000);
+
+    expect(money.multiply(0.75).getAmount()).toBe(7500);
+});
+
+it('should round half up when multiplying money', () => {
+    const money = new Money(102);
+
+    expect(money.multiply(0.75).getAmount()).toBe(77);
+});
+
+it('should reject negative multiplication factors', () => {
+    const money = new Money(100);
+
+    expect(() => money.multiply(-1)).toThrow();
+});
+
+it('should not modify original money when multiplying', () => {
+    const money = new Money(100);
+    const result = money.multiply(1.25);
+
+    expect(money.getAmount()).toBe(100);
+    expect(result.getAmount()).toBe(125);
+});
 });

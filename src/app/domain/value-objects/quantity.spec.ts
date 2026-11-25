@@ -105,4 +105,28 @@ describe('Quantity', () => {
 
         expect(first.equals(second)).toBe(false);
     });
+
+    it('should multiply quantity by a factor', () => {
+    const quantity = new Quantity(200, Unit.Gram);
+
+    expect(quantity.multiply(1.25).getAmount()).toBe(250);
+});
+
+it('should round half up when multiplying quantity', () => {
+    const quantity = new Quantity(150, Unit.Milliliter);
+
+    expect(quantity.multiply(0.75).getAmount()).toBe(113);
+});
+
+it('should preserve unit when multiplying', () => {
+    const quantity = new Quantity(200, Unit.Gram);
+
+    expect(quantity.multiply(0.75).getUnit()).toBe(Unit.Gram);
+});
+
+it('should reject negative multiplication factors', () => {
+    const quantity = new Quantity(200, Unit.Gram);
+
+    expect(() => quantity.multiply(-1)).toThrow();
+});
 });
