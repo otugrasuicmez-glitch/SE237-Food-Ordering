@@ -1,0 +1,297 @@
+
+@startuml
+title SE237 - Lezzet Duragi - M1 Domain Model
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+
+package "Value Objects" {
+
+    class Money {
+        - amount: number
+        + Money(amount: number)
+        + getAmount(): number
+        + add(other: Money): Money
+        + subtract(other: Money): Money
+        + equals(other: Money): boolean
+        + toTL(): number
+        + multiply(factor: number): Money
+    }
+
+    class Quantity {
+        - amount: number
+        - unit: Unit
+        + Quantity(amount: number, unit: Unit)
+        + getAmount(): number
+        + getUnit(): Unit
+        - ensureSameUnit(other: Quantity): void
+        + add(other: Quantity): Quantity
+        + subtract(other: Quantity): Quantity
+        + equals(other: Quantity): boolean
+        + isEnough(other: Quantity): boolean
+        + multiply(factor: number): Quantity
+    }
+
+    class RecipeLine {
+        - ingredientCode: string
+        - quantity: Quantity
+        + RecipeLine(ingredientCode: string, quantity: Quantity)
+        + getIngredientCode(): string
+        + getQuantity(): Quantity
+    }
+
+    class Recipe {
+        - lines: readonly RecipeLine[]
+        + Recipe(lines: readonly RecipeLine[])
+        + getLines(): readonly RecipeLine[]
+        + ingredientsNeeded(factor: number = 1): Map<string, Quantity>
+    }
+}
+
+package "Enums" {
+
+    enum Unit {
+        Gram = "g"
+        Milliliter = "ml"
+        Piece = "pcs"
+    }
+
+    enum MenuCategory {
+        Soup = "soups"
+        Grill = "grills"
+        Pide = "pide"
+        Dessert = "desserts"
+        Beverage = "beverages"
+        Combo = "combos"
+    }
+
+    enum BeverageSize {
+        Small = "S"
+        Medium = "M"
+        Large = "L"
+    }
+}
+
+package "Entities" {
+
+    abstract class MenuItem {
+        - code: string
+        - name: string
+        - category: MenuCategory
+        # MenuItem(code: string, name: string, category: MenuCategory)
+        + getCode(): string
+        + getName(): string
+        + getCategory(): MenuCategory
+        {abstract} + price(): Money
+        {abstract} + ingredientsNeeded(): Map<string, Quantity>
+    }
+
+    class Dish {
+        - menuPrice: Money
+        - recipe: Recipe
+        + Dish(code: string, name: string, category: MenuCategory, menuPrice: Money, recipe: Recipe)
+        + price(): Money
+        + ingredientsNeeded(): Map<string, Quantity>
+    }
+
+    class Beverage {
+        - basePrice: Money
+        - recipe: Recipe
+        - size: BeverageSize
+        + Beverage(code: string, name: string, basePrice: Money, recipe: Recipe, size: BeverageSize)
+        + getSize(): BeverageSize
+        - getSizeFactor(): number
+        + price(): Money
+        + ingredientsNeeded(): Map<string, Quantity>
+    }
+
+    class ComboMenu {
+        - items: readonly MenuItem[]
+        + ComboMenu(code: string, name: string, items: readonly MenuItem[])
+        + getItems(): readonly MenuItem[]
+        + price(): Money
+        + ingredientsNeeded(): Map<string, Quantity>
+    }
+
+    class Ingredient {
+        - code: string
+        - name: string
+        - unit: Unit
+        - reorderLevel: Quantity
+        + Ingredient(code: string, name: string, unit: Unit, reorderLevel: Quantity)
+        + getCode(): string
+        + getName(): string
+        + getUnit(): Unit
+        + getReorderLevel(): Quantity
+    }
+
+    interface StockEntry {
+        ingredient: Ingredient
+        stock: Quantity
+        reserved: Quantity
+    }
+
+    class Inventory {
+        - entries: Map<string, StockEntry>
+        - listeners: Set<LowStockListener>
+        + addIngredient(ingredient: Ingredient, initialStock: Quantity): void
+        - getEntry(code: string): StockEntry
+        + getStock(code: string): Quantity
+        + getReserved(code: string): Quantity
+        + getAvailable(code: string): Quantity
+        + restock(code: string, quantity: Quantity): void
+        + reserve(code: string, quantity: Quantity): void
+        + release(code: string, quantity: Quantity): void
+        + consume(code: string, quantity: Quantity): void
+        + addListener(listener: LowStockListener): void
+        + removeListener(listener: LowStockListener): void
+        - notifyIfLowStock(code: string, previousAvailable: Quantity): void
+    }
+
+    abstract class "TrackedDocument<TStatus>" as TrackedDocument {
+        - number: string
+        - date: Date
+        - status: TStatus
+        - statusHistory: TStatus[]
+        # TrackedDocument(number: string, date: Date, initialStatus: TStatus)
+        + getNumber(): string
+        + getDate(): Date
+        + getStatus(): TStatus
+        + getStatusHistory(): readonly TStatus[]
+        {abstract} # canTransitionTo(nextStatus: TStatus): boolean
+        # transitionTo(nextStatus: TStatus): void
+    }
+}
+
+package "Policies - Strategy Pattern" {
+
+    interface CampaignPolicy {
+        + discount(lineTotals: readonly Money[], isMember: boolean): Money
+        + deliveryFee(isMember: boolean): Money
+    }
+
+    class NoCampaign {
+        + discount(lineTotals: readonly Money[], isMember: boolean): Money
+        + deliveryFee(isMember: boolean): Money
+    }
+
+    class PercentOffAboveThreshold {
+        + discount(lineTotals: readonly Money[], isMember: boolean): Money
+        + deliveryFee(isMember: boolean): Money
+    }
+
+    class MemberCampaign {
+        + discount(lineTotals: readonly Money[], isMember: boolean): Money
+        + deliveryFee(isMember: boolean): Money
+    }
+}
+
+package "Listeners - Observer Pattern" {
+
+    interface LowStockListener {
+        + onLowStock(ingredientCode: string, available: Quantity, reorderLevel: Quantity): void
+    }
+}
+
+package "Domain Errors" {
+
+    class DomainError {
+        + DomainError(message: string)
+    }
+
+    class UnitMismatchError {
+        + UnitMismatchError(expected: Unit, actual: Unit)
+    }
+
+    class InsufficientStockError {
+        + InsufficientStockError(ingredientCode: string, required: Quantity, available: Quantity)
+    }
+
+    class InvalidTransitionError {
+        + InvalidTransitionError(from: string, to: string)
+    }
+}
+
+class Error <<built-in>>
+
+' Inheritance
+MenuItem <|-- Dish
+MenuItem <|-- Beverage
+MenuItem <|-- ComboMenu
+
+Error <|-- DomainError
+DomainError <|-- UnitMismatchError
+DomainError <|-- InsufficientStockError
+DomainError <|-- InvalidTransitionError
+
+' Interface realization
+CampaignPolicy <|.. NoCampaign
+CampaignPolicy <|.. PercentOffAboveThreshold
+CampaignPolicy <|.. MemberCampaign
+
+' Composition and aggregation
+Recipe "1" o-- "0..*" RecipeLine
+ComboMenu "1" o-- "2..*" MenuItem
+Inventory "1" *-- "0..*" StockEntry
+
+' Associations
+Dish --> Recipe
+Dish --> Money
+Beverage --> Recipe
+Beverage --> Money
+RecipeLine --> Quantity
+Ingredient --> Quantity
+StockEntry --> Ingredient
+StockEntry --> Quantity
+Inventory --> "0..*" LowStockListener : notifies
+
+' Enum dependencies
+Quantity --> Unit
+Ingredient --> Unit
+MenuItem --> MenuCategory
+Beverage --> BeverageSize
+UnitMismatchError ..> Unit
+
+' Other dependencies
+MenuItem ..> Money
+MenuItem ..> Quantity
+Recipe ..> Quantity
+CampaignPolicy ..> Money
+NoCampaign ..> Money
+MemberCampaign ..> Money
+PercentOffAboveThreshold ..> Money
+LowStockListener ..> Quantity
+Inventory ..> Quantity
+Inventory ..> InsufficientStockError
+Inventory ..> UnitMismatchError
+Ingredient ..> UnitMismatchError
+Quantity ..> UnitMismatchError
+TrackedDocument ..> InvalidTransitionError
+InsufficientStockError ..> Quantity
+
+note right of ComboMenu
+    Minimum 2 menu items
+    15% discount
+end note
+
+note right of Money
+    Immutable value object
+    Amount stored in kurus
+    Non-negative safe integer
+end note
+
+note right of Inventory
+    Available = Stock - Reserved
+    Notifies listeners when available
+    stock falls below reorder level
+end note
+
+note right of TrackedDocument
+    TStatus extends string
+    Guarded status transitions
+    Status history tracking
+end note
+
+@enduml
